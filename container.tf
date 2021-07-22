@@ -1,5 +1,9 @@
 resource "aws_ecs_cluster" "ecs-cl-env-test" {
   name = "ecs-cl-env-test"
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
   configuration {
     execute_command_configuration {
       logging    = "OVERRIDE"
@@ -47,14 +51,9 @@ resource "aws_ecs_service" "ecs-svc-env-test" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.lb-tg-green-env-test.arn
+    target_group_arn = aws_alb_target_group.lb-tg-green-env-test.arn
     container_name   = "app-container-test-env"
     container_port   = 8080
-  }
-
-  placement_constraints {
-    type       = "memberOf"
-    expression = "attribute:ecs.availability-zone in [eu-central-1a, eu-central-1b, eu-central-1c]"
   }
 
   tags = {
@@ -69,7 +68,7 @@ resource "aws_ecs_task_definition" "ecs-task-env-test" {
   container_definitions = jsonencode([
     {
       name      = "app-container-test-env"
-      image     = "nginx:latest"
+      image     = "thizaom/nginx-test"
       cpu       = 256
       memory    = 512
       essential = true

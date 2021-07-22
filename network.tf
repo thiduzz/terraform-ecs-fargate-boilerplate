@@ -35,6 +35,7 @@ resource "aws_subnet" "subnet_az1" {
   vpc_id     = aws_vpc.main.id
   cidr_block = "172.32.0.0/20"
   availability_zone = "eu-central-1a"
+
   tags = {
     Name = "Default subnet for eu-central-1a"
     Environment = "Dev"
@@ -61,6 +62,21 @@ resource "aws_subnet" "subnet_az3" {
   }
 }
 
+resource "aws_route_table_association" "subnet-route-assoc-env-test-1" {
+  subnet_id      = aws_subnet.subnet_az1.id
+  route_table_id = aws_route_table.rt-env-test.id
+}
+
+resource "aws_route_table_association" "subnet-route-assoc-env-test-2" {
+  subnet_id      = aws_subnet.subnet_az2.id
+  route_table_id = aws_route_table.rt-env-test.id
+}
+
+resource "aws_route_table_association" "subnet-route-assoc-env-test-3" {
+  subnet_id      = aws_subnet.subnet_az3.id
+  route_table_id = aws_route_table.rt-env-test.id
+}
+
 resource "aws_security_group" "security-group-env-test" {
   name        = "security-group-env-test"
   description = "Allow TLS inbound traffic"
@@ -71,7 +87,8 @@ resource "aws_security_group" "security-group-env-test" {
     from_port        = 443
     to_port          = 443
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.main.cidr_block]
+    cidr_blocks      = [aws_vpc.main.cidr_block,  "0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
 
@@ -80,7 +97,43 @@ resource "aws_security_group" "security-group-env-test" {
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.main.cidr_block]
+    cidr_blocks      = [aws_vpc.main.cidr_block, "0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "Default Container Port"
+    from_port        = 8080
+    to_port          = 8080
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.main.cidr_block, "0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "Non-default Container Port"
+    from_port        = 8081
+    to_port          = 8081
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.main.cidr_block, "0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "TLS Container Port"
+    from_port        = 8443
+    to_port          = 8443
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.main.cidr_block, "0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -89,7 +142,7 @@ resource "aws_security_group" "security-group-env-test" {
 }
 
 
-resource "aws_lb" "lb-env-test" {
+resource "aws_alb" "lb-env-test" {
   name               = "lb-env-test"
   internal           = false
   load_balancer_type = "application"
@@ -114,7 +167,7 @@ resource "aws_lb" "lb-env-test" {
   }
 }
 
-resource "aws_lb_target_group" "lb-tg-blue-env-test" {
+resource "aws_alb_target_group" "lb-tg-blue-env-test" {
   name     = "lb-tg-blue-env-test"
   port     = 80
   protocol = "HTTP"
@@ -125,9 +178,10 @@ resource "aws_lb_target_group" "lb-tg-blue-env-test" {
     port     = 80
     protocol = "HTTP"
   }
+  depends_on = [aws_alb.lb-env-test]
 }
 
-resource "aws_lb_target_group" "lb-tg-green-env-test" {
+resource "aws_alb_target_group" "lb-tg-green-env-test" {
   name     = "lb-tg-green-env-test"
   port     = 80
   protocol = "HTTP"
@@ -138,24 +192,25 @@ resource "aws_lb_target_group" "lb-tg-green-env-test" {
     port     = 80
     protocol = "HTTP"
   }
+  depends_on = [aws_alb.lb-env-test]
 }
 
 resource "aws_lb_listener" "lb-listener-1-env-test" {
-  load_balancer_arn = aws_lb.lb-env-test.id
+  load_balancer_arn = aws_alb.lb-env-test.id
   port = 80
 
   default_action {
-    target_group_arn = aws_lb_target_group.lb-tg-green-env-test.id
+    target_group_arn = aws_alb_target_group.lb-tg-green-env-test.arn
     type             = "forward"
   }
 }
 
 resource "aws_lb_listener" "lb-listener-2-env-test" {
-  load_balancer_arn = aws_lb.lb-env-test.id
+  load_balancer_arn = aws_alb.lb-env-test.id
   port = 8080
 
   default_action {
-    target_group_arn = aws_lb_target_group.lb-tg-green-env-test.id
+    target_group_arn = aws_alb_target_group.lb-tg-green-env-test.arn
     type             = "forward"
   }
 }
