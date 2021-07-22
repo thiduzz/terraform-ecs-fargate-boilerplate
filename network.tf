@@ -61,17 +61,8 @@ resource "aws_subnet" "subnet_az3" {
   }
 }
 
-data "aws_subnet_ids" "public" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Environment = "Dev"
-    Tier = "Public"
-  }
-}
-
-resource "aws_security_group" "sg-env-test" {
-  name        = "sg-env-test"
+resource "aws_security_group" "security-group-env-test" {
+  name        = "security-group-env-test"
   description = "Allow TLS inbound traffic"
   vpc_id      = aws_vpc.main.id
 
@@ -81,7 +72,6 @@ resource "aws_security_group" "sg-env-test" {
     to_port          = 443
     protocol         = "tcp"
     cidr_blocks      = [aws_vpc.main.cidr_block]
-    ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
   }
 
 
@@ -91,7 +81,6 @@ resource "aws_security_group" "sg-env-test" {
     to_port          = 80
     protocol         = "tcp"
     cidr_blocks      = [aws_vpc.main.cidr_block]
-    ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
   }
 
   tags = {
@@ -104,7 +93,7 @@ resource "aws_lb" "lb-env-test" {
   name               = "lb-env-test"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.sg-env-test.id]
+  security_groups    = [aws_security_group.security-group-env-test.id]
   subnets            = [
     aws_subnet.subnet_az1.id,
     aws_subnet.subnet_az2.id,
@@ -129,7 +118,7 @@ resource "aws_lb_target_group" "lb-tg-blue-env-test" {
   name     = "lb-tg-blue-env-test"
   port     = 80
   protocol = "HTTP"
-  target_type = "IP"
+  target_type = "ip"
   vpc_id   = aws_vpc.main.id
 
   health_check {
@@ -142,7 +131,7 @@ resource "aws_lb_target_group" "lb-tg-green-env-test" {
   name     = "lb-tg-green-env-test"
   port     = 80
   protocol = "HTTP"
-  target_type = "IP"
+  target_type = "ip"
   vpc_id   = aws_vpc.main.id
 
   health_check {
