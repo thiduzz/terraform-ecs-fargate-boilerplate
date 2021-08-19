@@ -30,8 +30,8 @@ This is a personal boilerplate to enable me to quickly provision and destroy my 
 
 ## Optimizations
 
-1. Introduce private ECR Repository
-2. Introduce local variables to the .tfs 
+1. Introduce local variables to the .tfs
+2. Introduce CodeDeploy/CodeBuild/Pipeline
 
 ## License
 
