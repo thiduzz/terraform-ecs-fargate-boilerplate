@@ -96,3 +96,63 @@ resource "aws_ecs_task_definition" "ecs-task-env-test" {
     Environment = "Dev"
   }
 }
+
+//ECR Definition
+resource "aws_kms_key" "kms-key-staging" {
+  description             = "KMS for Encrypting ECR Images"
+  deletion_window_in_days = 10
+}
+
+resource "aws_ecr_repository" "ecr-repository-1" {
+  name                 = "base-php7.4-alpine"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key = aws_kms_key.kms-key-staging.arn
+  }
+
+  tags = {
+    BaseImage        = "true"
+  }
+}
+
+resource "aws_ecr_repository" "ecr-repository-2" {
+  name                 = "base-php8.0-alpine"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key = aws_kms_key.kms-key-staging.arn
+  }
+
+  tags = {
+    BaseImage        = "true"
+  }
+}
+
+resource "aws_ecr_repository" "ecr-repository-3" {
+  name                 = "app"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key = aws_kms_key.kms-key-staging.arn
+  }
+
+  tags = {
+    BaseImage        = "false"
+  }
+}
